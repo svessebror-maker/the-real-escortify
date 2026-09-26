@@ -36,6 +36,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Local placeholder photos of real people: never committed (the repo is public)
+/assets/placeholders/*
+!/assets/placeholders/README.md
+
 # generated native folders
 /ios
 /android

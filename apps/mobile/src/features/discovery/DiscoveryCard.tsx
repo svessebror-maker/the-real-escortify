@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, type ImageSourcePropType, StyleSheet, Text, View } from "react-native";
 
 import { type DiscoveryProfile, initials } from "@shared/discovery";
 
 import type { Palette } from "@/theme";
 
-type Props = { profile: DiscoveryProfile; palette: Palette };
+type Props = { profile: DiscoveryProfile; palette: Palette; photo?: ImageSourcePropType };
 
 // Content order follows docs/build-plan.md Step 13: image, name and role,
 // institution and location, goal badge, topics, skills, reasons, availability.
-export function DiscoveryCard({ profile, palette }: Props) {
+export function DiscoveryCard({ profile, palette, photo }: Props) {
   const { hue } = profile;
 
   return (
@@ -25,12 +25,20 @@ export function DiscoveryCard({ profile, palette }: Props) {
         end={{ x: 1, y: 1 }}
         style={styles.cover}
       >
+        {photo ? (
+          <>
+            <Image source={photo} style={styles.photo} resizeMode="cover" accessible={false} />
+            {/* Soft shade keeps the goal badge readable on any photo. */}
+            <LinearGradient colors={["rgba(0,0,0,0.35)", "rgba(0,0,0,0)"]} style={styles.photoShade} />
+          </>
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials(profile.name)}</Text>
+          </View>
+        )}
         <View style={styles.goal}>
           <Ionicons name="sparkles" size={13} color="#ffffff" />
           <Text style={styles.goalText}>{profile.goal}</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials(profile.name)}</Text>
         </View>
       </LinearGradient>
 
@@ -96,7 +104,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 24,
   },
-  cover: { flex: 1, minHeight: 150, alignItems: "center", justifyContent: "center" },
+  cover: { flex: 1, minHeight: 150, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  // Explicit size: an image's intrinsic dimensions must never grow the cover.
+  photo: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" },
+  photoShade: { position: "absolute", top: 0, left: 0, right: 0, height: 96 },
   goal: {
     position: "absolute",
     top: 16,

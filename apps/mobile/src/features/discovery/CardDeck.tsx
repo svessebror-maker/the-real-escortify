@@ -20,6 +20,7 @@ import { usePalette } from "@/theme";
 
 import { ActionBar } from "./ActionBar";
 import { DiscoveryCard } from "./DiscoveryCard";
+import { placeholderPhoto } from "./placeholderPhotos";
 
 // Resting place of the top card and the two buffered cards behind it.
 const STACK = [
@@ -195,7 +196,7 @@ export function CardDeck({ profiles }: { profiles: DiscoveryProfile[] }) {
           ) : null}
           {mounted.map(({ profile, i }) => (
             <SwipeCard key={profile.id} cardIndex={i} deck={deck}>
-              <DiscoveryCard profile={profile} palette={palette} />
+              <DiscoveryCard profile={profile} palette={palette} photo={placeholderPhoto(profile.id)} />
             </SwipeCard>
           ))}
         </View>
