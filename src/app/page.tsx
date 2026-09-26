@@ -5,7 +5,7 @@ export default function Home() {
       <p className="max-w-md text-lg text-foreground/70">
         Find the right people and projects for academic collaboration.
       </p>
-      <p className="text-sm text-foreground/50">Coming soon.</p>
+      <p className="text-sm text-foreground/70">Coming soon.</p>
     </main>
   );
 }

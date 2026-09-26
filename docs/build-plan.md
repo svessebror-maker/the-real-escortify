@@ -194,6 +194,7 @@ NEXT_PUBLIC_APP_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_JWT_SIGNING_KEY=
 STYTCH_PROJECT_ID=
 STYTCH_SECRET=
 NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN=
@@ -213,7 +214,7 @@ ASANA_CLIENT_SECRET=
 Rules:
 
 - Only `NEXT_PUBLIC_*` values may enter the browser bundle.
-- `SUPABASE_SERVICE_ROLE_KEY`, Stytch secret, OAuth client secrets, encryption key, refresh tokens, and webhook secrets remain server-only.
+- `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SIGNING_KEY`, Stytch secret, OAuth client secrets, encryption key, refresh tokens, and webhook secrets remain server-only.
 - Validate required variables at server startup with Zod.
 - Never log token values.
 
@@ -229,6 +230,8 @@ src/lib/auth/client.ts
 src/middleware.ts
 src/app/(auth)/login/page.tsx
 src/app/(auth)/callback/route.ts
+src/lib/auth/supabase-token.ts
+src/app/api/auth/supabase-token/route.ts
 ```
 
 After successful login:
@@ -236,8 +239,9 @@ After successful login:
 1. Validate the Stytch session on the server.
 2. Read the Stytch `user_id`.
 3. Upsert one internal profile row using `auth_user_id = stytch_user_id`.
-4. Redirect incomplete profiles to `/onboarding`.
-5. Redirect completed profiles to `/discover`.
+4. Mint a short-lived Supabase access token for that profile, as defined in the Step 7 identity contract.
+5. Redirect incomplete profiles to `/onboarding`.
+6. Redirect completed profiles to `/discover`.
 
 Acceptance tests:
 
@@ -245,6 +249,7 @@ Acceptance tests:
 - Expired sessions redirect safely.
 - Repeated callbacks do not create duplicate profiles.
 - Server routes reject missing or invalid sessions.
+- The token route returns no Supabase token without a valid Stytch session.
 
 ## Step 6: Create schema
 
@@ -400,7 +405,28 @@ Add indexes for:
 
 ## Step 7: Add RLS
 
-Enable RLS on every exposed table. Policies should follow these rules:
+### Identity contract: Stytch to Supabase
+
+Supabase does not verify Stytch sessions. Its third-party auth integrations cover Clerk, Firebase Auth, Auth0, AWS Cognito, and WorkOS, but not Stytch.[^14] The caller's identity therefore reaches Postgres through a short-lived token that the Letsseeeify server mints after it validates the Stytch session:
+
+1. The server validates the Stytch session and resolves the internal profile where `auth_user_id = stytch_user_id` (Step 5).
+2. The server mints a Supabase access token signed with a private key that has been imported into the Supabase project as a JWT signing key.[^15] The `kid` header must match the imported key. The payload contains:
+   - `sub`: the internal `profiles.id` (a UUID), so `auth.uid()` returns the caller's profile ID
+   - `role`: `authenticated`
+   - `iat` and `exp`: the token expires within 15 minutes
+3. The signing key (`SUPABASE_JWT_SIGNING_KEY`) stays server-only. The browser receives only minted tokens. It refreshes them through a server route that re-validates the Stytch session on every request, so a revoked session stops receiving tokens and loses database access once its current token expires.
+4. Supabase clients send the minted token through the `accessToken` option, and Realtime receives it through `realtime.setAuth`.[^16][^9] The `apikey` header always carries the publishable key. It never carries the minted token or the service-role key.
+5. Policies identify the caller by comparing `profiles.id`, or a foreign key to it, with `(select auth.uid())`. Wrapping `auth.uid()` in `select` lets Postgres evaluate it once per statement instead of once per row.[^13]
+6. The service-role client is reserved for server-only modules that do work RLS cannot express, such as webhook processing and moderation tools. The service role bypasses RLS. Before touching data, each such operation must validate the Stytch session, resolve the caller's profile, and check ownership or membership in code. Use a client authenticated with the minted token wherever possible.
+
+Tests for this contract:
+
+- Unit tests for token minting check the claims, the `kid` header, and the expiry. They also check that missing, expired, or revoked Stytch sessions receive no token.
+- Every `*_rls.test.sql` file runs as `anon`, as `authenticated` with `sub` set to an owning or member profile, and as `authenticated` with a non-owning profile. It covers allowed and denied `select`, `insert`, `update`, and `delete`.
+- Route tests prove that each service-role path rejects a signed-in user who is not the owner or member before any service-role query runs.
+- An integration test confirms that Supabase rejects tokens that are expired or signed with a different key.
+
+Policies should follow these rules:
 
 - Users may update only their own profile.
 - Users may read discoverable profiles unless either side has blocked the other.
@@ -722,7 +748,7 @@ Do not copy Tinder’s exact match screen, phrases, gradients, animations, or ic
 
 ## Step 17: Realtime chat
 
-Create private channels named from opaque conversation IDs. Supabase Realtime can authorize Broadcast and Presence with RLS policies on `realtime.messages`; private channels must disable public access and connect with `private: true`.[^9][^10]
+Create private channels named from opaque conversation IDs. Supabase Realtime can authorize Broadcast and Presence with RLS policies on `realtime.messages`; private channels must disable public access and connect with `private: true`.[^9][^10] Clients authenticate Realtime with the minted Supabase token from the Step 7 identity contract and refresh it before it expires. Policies on `realtime.messages` allow access only when `(select auth.uid())` is a member of the conversation named by `realtime.topic()`.
 
 Message flow:
 
@@ -884,9 +910,10 @@ reasons.test.ts
 diversity.test.ts
 reaction-schema.test.ts
 cursor.test.ts
+supabase-token.test.ts
 ```
 
-Required database tests:
+Required database tests, each run as `anon`, as an owning or member profile, and as a non-owning profile (see the Step 7 identity contract):
 
 ```text
 profiles_rls.test.sql
@@ -896,6 +923,7 @@ matches_rls.test.sql
 messages_rls.test.sql
 blocks_rls.test.sql
 reports_rls.test.sql
+realtime_messages_rls.test.sql
 ```
 
 Required Playwright paths:
@@ -912,6 +940,7 @@ Required Playwright paths:
 10. Use the full flow with keyboard only.
 11. Use reduced-motion mode.
 12. Recover from a failed reaction request.
+13. Verify that a signed-in user cannot read or subscribe to a conversation they are not a member of.
 
 Run:
 
@@ -945,6 +974,7 @@ RLS filters should use indexed columns, specify roles, and avoid unnecessary joi
 The MVP is complete only when:
 
 - Authentication works with valid server-side session checks.
+- Supabase access tokens are minted only after server-side Stytch validation, expire within 15 minutes, and carry the profile ID as `sub`.
 - Onboarding produces a usable academic profile.
 - Strict preferences never broaden.
 - Swipe, buttons, and keyboard perform identical actions.
@@ -1000,29 +1030,35 @@ This prevents the coding app from making broad unverified changes and keeps impl
 
 ## References
 
-1. [Frequently Asked Questions - Tinder](https://tinder.com/en-GB/faq/) - Is Tinder free? Is Tinder safe? How much does Tinder cost? Who uses Tinder? Everything you ever want...
+[^1]: [Frequently Asked Questions - Tinder](https://tinder.com/en-GB/faq/) - Is Tinder free? Is Tinder safe? How much does Tinder cost? Who uses Tinder? Everything you ever want...
 
-2. [Safety Tips | Tinder](https://tinder.com/safety-tips) - Learn how to stay safe on Tinder. Get tips for online safety, meeting in person, and protecting your...
+[^2]: [Safety Tips | Tinder](https://tinder.com/safety-tips) - Learn how to stay safe on Tinder. Get tips for online safety, meeting in person, and protecting your...
 
-3. [Relationship Goals](https://se.tinderpressroom.com/RelationshipGoals) - Dating Sunday är en av de mest hektiska dagarna under året när det kommer till dejting med 10 procen...
+[^3]: [Relationship Goals](https://se.tinderpressroom.com/RelationshipGoals) - Dating Sunday är en av de mest hektiska dagarna under året när det kommer till dejting med 10 procen...
 
-4. [Discovery-Einstellungen](https://www.help.tinder.com/hc/de/articles/115003340963-Discovery-Einstellungen) - Aktualisiere deine Discovery-Einstellungen Discovery ist der Teil von Tinder, in dem du die Profile ...
+[^4]: [Discovery-Einstellungen](https://www.help.tinder.com/hc/de/articles/115003340963-Discovery-Einstellungen) - Aktualisiere deine Discovery-Einstellungen Discovery ist der Teil von Tinder, in dem du die Profile ...
 
-5. [Row Level Security | Supabase Docs](https://supabase.com/docs/guides/database/postgres/row-level-security) - Secure your data using Postgres Row Level Security.
+[^5]: [Row Level Security | Supabase Docs](https://supabase.com/docs/guides/database/postgres/row-level-security) - Secure your data using Postgres Row Level Security.
 
-6. [Securing your data | Supabase Docs](https://supabase.com/docs/guides/database/secure-data)
+[^6]: [Securing your data | Supabase Docs](https://supabase.com/docs/guides/database/secure-data)
 
-7. [Securing your API](https://supabase.com/docs/guides/api/securing-your-api) - Secure your Data API with explicit grants and Postgres Row Level Security.
+[^7]: [Securing your API](https://supabase.com/docs/guides/api/securing-your-api) - Secure your Data API with explicit grants and Postgres Row Level Security.
 
-8. [Relationship Goals - Tinder Newsroom](https://www.tinderpressroom.com/2022-12-14-Tinder-Introduces-Relationship-Goals,-Because-Sharing-What-You-Want-Is-Sexy) - LOS ANGELES - DECEMBER 14, 2022 - Today, Tinder is rolling out Relationship Goals, a new profile fea...
+[^8]: [Relationship Goals - Tinder Newsroom](https://www.tinderpressroom.com/2022-12-14-Tinder-Introduces-Relationship-Goals,-Because-Sharing-What-You-Want-Is-Sexy) - LOS ANGELES - DECEMBER 14, 2022 - Today, Tinder is rolling out Relationship Goals, a new profile fea...
 
-9. [Realtime Authorization | Supabase Docs](https://supabase.com/docs/guides/realtime/authorization) - Authorization for Supabase Realtime
+[^9]: [Realtime Authorization | Supabase Docs](https://supabase.com/docs/guides/realtime/authorization) - Authorization for Supabase Realtime
 
-10. [Getting Started with Realtime | Supabase Docs](https://supabase.com/docs/guides/realtime/getting_started) - Learn how to build real-time applications with Supabase Realtime
+[^10]: [Getting Started with Realtime | Supabase Docs](https://supabase.com/docs/guides/realtime/getting_started) - Learn how to build real-time applications with Supabase Realtime
 
-11. [Tinder | Dating, Make Friends & Meet New People](https://tinder.com/safety/) - With 55 billion matches to date, Tinder® is the world’s most popular dating app, making it the place...
+[^11]: [Tinder | Dating, Make Friends & Meet New People](https://tinder.com/safety/) - With 55 billion matches to date, Tinder® is the world’s most popular dating app, making it the place...
 
-12. [Privacy settings | Tinder | Match. Chat. Meet. Modern Dating.](https://policies.tinder.com/safety-center/tools/privacy/intl/en/) - With 43 billion matches to date, Tinder® is the world’s most popular dating app, making it the place...
+[^12]: [Privacy settings | Tinder | Match. Chat. Meet. Modern Dating.](https://policies.tinder.com/safety-center/tools/privacy/intl/en/) - With 43 billion matches to date, Tinder® is the world’s most popular dating app, making it the place...
 
-13. [Row Level Security performance | Supabase Docs](https://supabase.com/docs/guides/database/postgres/row-level-security-performance) - Measure and tune Postgres Row Level Security policies.
+[^13]: [Row Level Security performance | Supabase Docs](https://supabase.com/docs/guides/database/postgres/row-level-security-performance) - Measure and tune Postgres Row Level Security policies.
+
+[^14]: [Third-party auth | Supabase Docs](https://supabase.com/docs/guides/auth/third-party/overview) - Supported external auth providers whose JWTs Supabase can verify.
+
+[^15]: [JWT signing keys | Supabase Docs](https://supabase.com/docs/guides/auth/signing-keys) - Importing a private key and minting JWTs with `sub`, `role`, and `exp` claims.
+
+[^16]: [JSON Web Tokens | Supabase Docs](https://supabase.com/docs/guides/auth/jwts) - Passing custom or third-party JWTs to Supabase clients with the `accessToken` option.
 

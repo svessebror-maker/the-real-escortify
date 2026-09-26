@@ -4,11 +4,15 @@ import { parseServerEnv } from "./schema";
 
 const validKey = Buffer.alloc(32, 7).toString("base64");
 
+const publicJwk = { kty: "EC", kid: "test-kid", crv: "P-256", x: "x-test", y: "y-test" };
+const privateJwk = JSON.stringify({ ...publicJwk, d: "d-test" });
+
 const validCore = {
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-test",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-test",
+  SUPABASE_JWT_SIGNING_KEY: privateJwk,
   STYTCH_PROJECT_ID: "project-test",
   STYTCH_SECRET: "stytch-secret-test",
   NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: "public-token-test",
@@ -59,12 +63,26 @@ describe("parseServerEnv", () => {
     });
   });
 
+  it.each([
+    ["a public JWK", JSON.stringify(publicJwk)],
+    ["a JWK without kid", JSON.stringify({ kty: "EC", d: "d-test" })],
+    ["non-JSON text", "not-json"],
+    ["a JSON array", "[]"],
+  ])("rejects %s as the JWT signing key", (_label, value) => {
+    const result = parseServerEnv({ ...validCore, SUPABASE_JWT_SIGNING_KEY: value });
+    expect(result).toEqual({
+      ok: false,
+      problems: ["SUPABASE_JWT_SIGNING_KEY must be a private JWK (JSON with kid, kty and d)"],
+    });
+  });
+
   it("never includes variable values in problem messages", () => {
     const secret = "sk_this_value_must_not_leak";
     const result = parseServerEnv({
       ...validCore,
       NEXT_PUBLIC_APP_URL: secret,
       TOKEN_ENCRYPTION_KEY: secret,
+      SUPABASE_JWT_SIGNING_KEY: secret,
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;

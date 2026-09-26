@@ -19,12 +19,31 @@ const base64Key32 = () =>
     error: "must be 32 random bytes, base64-encoded",
   });
 
+// A private JSON Web Key: a public key (no "d") cannot sign tokens.
+const isPrivateJwk = (value: string) => {
+  try {
+    const jwk: unknown = JSON.parse(value);
+    if (typeof jwk !== "object" || jwk === null) return false;
+    const fields = jwk as Record<string, unknown>;
+    return ["kid", "kty", "d"].every((key) => typeof fields[key] === "string");
+  } catch {
+    return false;
+  }
+};
+
+const privateJwk = () =>
+  required().refine(isPrivateJwk, {
+    error: "must be a private JWK (JSON with kid, kty and d)",
+  });
+
 export const serverEnvSchema = z.object({
   // Core: required from the auth phase onward.
   NEXT_PUBLIC_APP_URL: requiredUrl(),
   NEXT_PUBLIC_SUPABASE_URL: requiredUrl(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: required(),
   SUPABASE_SERVICE_ROLE_KEY: required(),
+  // Signs short-lived Supabase access tokens (docs/build-plan.md, Step 7).
+  SUPABASE_JWT_SIGNING_KEY: privateJwk(),
   STYTCH_PROJECT_ID: required(),
   STYTCH_SECRET: required(),
   NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: required(),
