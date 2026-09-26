@@ -6,8 +6,13 @@ import { z } from "zod";
 const required = () =>
   z.string({ error: "is required" }).min(1, { error: "is required" });
 
+// Only http(s): bare hosts like "localhost:3000" and schemes like
+// "javascript:" otherwise pass z.url().
+const httpProtocol = /^https?$/;
+
 const requiredUrl = () =>
   z.url({
+    protocol: httpProtocol,
     error: (issue) =>
       issue.input === undefined ? "is required" : "must be a valid URL",
   });
@@ -53,7 +58,9 @@ export const serverEnvSchema = z.object({
   STYTCH_WEBHOOK_SECRET: optional(),
   GOOGLE_CLIENT_ID: optional(),
   GOOGLE_CLIENT_SECRET: optional(),
-  GOOGLE_REDIRECT_URI: z.url().optional(),
+  GOOGLE_REDIRECT_URI: z
+    .url({ protocol: httpProtocol, error: "must be a valid URL" })
+    .optional(),
   GITHUB_CLIENT_ID: optional(),
   GITHUB_CLIENT_SECRET: optional(),
   FIGMA_CLIENT_ID: optional(),

@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = 3100;
+// Next 16 allows one `next dev` per project, so reuse the developer's running
+// dev server locally instead of starting a second one on another port.
+const port = Number(process.env.PORT ?? 3000);
 const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({

@@ -54,6 +54,23 @@ describe("parseServerEnv", () => {
     });
   });
 
+  it("rejects URLs without an http(s) scheme", () => {
+    const result = parseServerEnv({
+      ...validCore,
+      NEXT_PUBLIC_APP_URL: "localhost:3000",
+      NEXT_PUBLIC_SUPABASE_URL: "javascript:alert(1)",
+      GOOGLE_REDIRECT_URI: "ftp://example.com/callback",
+    });
+    expect(result).toEqual({
+      ok: false,
+      problems: [
+        "NEXT_PUBLIC_APP_URL must be a valid URL",
+        "NEXT_PUBLIC_SUPABASE_URL must be a valid URL",
+        "GOOGLE_REDIRECT_URI must be a valid URL",
+      ],
+    });
+  });
+
   it("requires the encryption key to be 32 base64-encoded bytes", () => {
     const short = Buffer.alloc(16, 1).toString("base64");
     const result = parseServerEnv({ ...validCore, TOKEN_ENCRYPTION_KEY: short });
