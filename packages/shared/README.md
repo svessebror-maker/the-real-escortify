@@ -6,4 +6,6 @@ TypeScript shared by the web app (`src/`) and the mobile app (`apps/mobile/`). B
 import { APP_NAME } from "@shared/brand";
 ```
 
+Current modules are `brand` (product name and tagline), `discovery` (card data and sample profiles) and `swipe` (the deck's swipe rules). Their `*.test.ts` files run with the web app's Vitest (`npm test`); tests are the one place imports are allowed.
+
 Keep this folder **dependency-free**, with no `react`, `react-native` or other package imports. The mobile app bundles it from outside its own project. Any package imported here would resolve against the web app's `node_modules` and could load a second copy of React into the mobile app. When shared code needs a library such as `zod`, convert the repository to npm workspaces first so Expo's automatic monorepo setup applies.

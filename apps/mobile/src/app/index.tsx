@@ -1,36 +1,33 @@
-import { Image, StyleSheet, Text } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { APP_NAME, APP_TAGLINE } from "@shared/brand";
+import { APP_NAME } from "@shared/brand";
+import { SAMPLE_PROFILES } from "@shared/discovery";
 
+import { CardDeck } from "@/features/discovery/CardDeck";
 import { usePalette } from "@/theme";
 
-export default function Home() {
+// Discovery with sample profiles until the discovery API (build plan Step 12) exists.
+export default function Discover() {
   const palette = usePalette();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-      {/* logo.png ships @2x/@3x variants, so it stays sharp on every screen density. */}
-      <Image source={require("../../assets/logo.png")} style={styles.logo} accessible={false} />
-      <Text accessibilityRole="header" style={[styles.title, { color: palette.foreground }]}>
-        {APP_NAME}
-      </Text>
-      <Text style={[styles.tagline, { color: palette.muted }]}>{APP_TAGLINE}</Text>
-      <Text style={[styles.status, { color: palette.muted }]}>Coming soon.</Text>
+    <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={styles.header}>
+        {/* logo.png ships @2x/@3x variants, so it stays sharp on every screen density. */}
+        <Image source={require("../../assets/logo.png")} style={styles.logo} accessible={false} />
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.foreground }]}>
+          {APP_NAME}
+        </Text>
+      </View>
+      <CardDeck profiles={SAMPLE_PROFILES} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    paddingHorizontal: 24,
-  },
-  logo: { width: 96, height: 96, marginBottom: 8 },
-  title: { fontSize: 36, fontWeight: "600", letterSpacing: -0.5 },
-  tagline: { fontSize: 18, lineHeight: 28, textAlign: "center", maxWidth: 448 },
-  status: { fontSize: 14 },
+  screen: { flex: 1, paddingHorizontal: 16 },
+  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
+  logo: { width: 32, height: 32 },
+  title: { fontSize: 22, fontWeight: "700", letterSpacing: -0.3 },
 });
