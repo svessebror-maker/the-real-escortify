@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": [
@@ -32,6 +33,7 @@
   ],
   "exclude": [
     "node_modules",
+    "apps",
     "Add random creds",
     "letsseeeify-hd",
     "For improvments",

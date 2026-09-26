@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fromRoot("./src"),
+      "@shared": fromRoot("./packages/shared/src"),
       // `server-only` throws outside React Server Components; tests exercise
       // server modules directly, so resolve it to its no-op build.
       "server-only": fromRoot("./node_modules/server-only/empty.js"),

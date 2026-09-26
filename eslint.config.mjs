@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The mobile app has its own ESLint config (apps/mobile/eslint.config.js).
+    "apps/**",
     // Test output and personal folders that are not part of the app.
     "coverage/**",
     "playwright-report/**",

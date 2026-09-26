@@ -4,9 +4,19 @@ Mobile-first academic discovery and collaboration: browse one relevant profile o
 
 The build plan lives in [docs/build-plan.md](docs/build-plan.md). Work proceeds one phase at a time.
 
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `src/` | Next.js web app, which is also the API the mobile app uses |
+| `apps/mobile/` | iOS and Android app (Expo). See [apps/mobile/README.md](apps/mobile/README.md) |
+| `packages/shared/` | Dependency-free TypeScript used by both apps, imported as `@shared/*` |
+| `docs/` | Build plan |
+
 ## Stack
 
-Next.js 16 (App Router, TypeScript strict), Tailwind CSS 4, Stytch auth, Supabase (Postgres, RLS, Realtime, Storage), Zod, React Hook Form, Framer Motion, Vitest, Playwright.
+- Web: Next.js 16 (App Router, TypeScript strict), Tailwind CSS 4, Stytch auth, Supabase (Postgres, RLS, Realtime, Storage), Zod, React Hook Form, Framer Motion, Vitest, Playwright.
+- Mobile: Expo SDK 57 (React Native 0.86) with Expo Router, built with EAS.
 
 ## Getting started
 
@@ -37,10 +47,12 @@ In development, missing environment variables are reported as a warning. In prod
 
 Every pull request and push to `main` runs:
 
-- **CI** (`.github/workflows/ci.yml`): type check, lint, unit tests, and production build, then a check that server-only secrets never appear in the build output; Playwright end-to-end tests run in a separate job.
+- **CI** (`.github/workflows/ci.yml`):
+  - Web: type check, lint, unit tests and production build, then a check that server-only secrets never appear in the build output. Playwright end-to-end tests run in a separate job.
+  - Mobile: type check, lint, `expo-doctor`, and a JavaScript bundle for Android and iOS.
 - **Secret scan** (`.github/workflows/secret-scan.yml`): gitleaks over the full history.
 
-Dependabot proposes weekly npm and GitHub Actions updates, which run through the same checks.
+Dependabot proposes weekly updates for the web app's npm packages and for GitHub Actions, and every update runs through the same checks. The mobile app is upgraded one Expo SDK at a time instead (see its README).
 
 ## Secrets
 
