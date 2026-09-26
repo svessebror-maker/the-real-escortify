@@ -10,7 +10,7 @@ The interaction can borrow proven product patterns without copying Tinder’s br
 
 Use this stack unless the existing repository already has an equivalent implementation:
 
-- Next.js 15 or newer with App Router
+- Next.js 16 with App Router. Its conventions differ from older versions, so read the guides in `node_modules/next/dist/docs/` before coding.
 - TypeScript in strict mode
 - Tailwind CSS and shadcn/ui
 - Framer Motion for the card interaction
@@ -133,9 +133,11 @@ Install only packages missing from the project:
 
 ```bash
 npm install @supabase/supabase-js zod react-hook-form @hookform/resolvers framer-motion
-npm install @stytch/nextjs @stytch/vanilla-js
+npm install @stytch/nextjs
 npm install -D vitest @testing-library/react @testing-library/jest-dom @playwright/test
 ```
+
+Import Stytch client APIs from `@stytch/nextjs` only. Since version 22, `@stytch/vanilla-js` is no longer required. At the start of the auth phase, add Stytch's server-side Node SDK (`stytch`) for session validation, and use it only from `server-only` modules.
 
 Suggested structure:
 
@@ -220,14 +222,22 @@ Rules:
 
 ## Step 5: Implement auth
 
-Implement Stytch email OTP or magic link plus Google sign-in. Use server middleware or protected layouts to validate every authenticated route.
+Implement Stytch email OTP or magic link plus Google sign-in.
+
+Verify the Stytch session in a server-only Data Access Layer: `src/lib/auth/dal.ts` starts with `import "server-only"` and exports `verifySession`, wrapped in React `cache`. Call it from every protected page, Route Handler, and Server Action. Never rely on layouts for authentication, because layouts do not re-run on navigation and do not protect Server Actions.
+
+Optionally add `src/proxy.ts` for fast redirects based on cookie presence only. Next.js 16 renamed `middleware.ts` to `proxy.ts` and the exported function to `proxy`. The proxy must not call Stytch or the database, must not export `runtime`, and is never the only authorization check: Server Functions on paths its matcher excludes skip it entirely.
+
+Client code reads browser-visible configuration from `src/lib/env/public.ts`. That module references each `process.env.NEXT_PUBLIC_*` variable literally, so Next.js can inline it at build time, and uses no `Buffer` and no `server-only`. Derive the server schema from it with `.extend`. `NEXT_PUBLIC_*` values are frozen at `next build`, so validate them during the build once they become required.
 
 Create:
 
 ```text
 src/lib/auth/server.ts
 src/lib/auth/client.ts
-src/middleware.ts
+src/lib/auth/dal.ts
+src/proxy.ts (optional)
+src/lib/env/public.ts
 src/app/(auth)/login/page.tsx
 src/app/(auth)/callback/route.ts
 src/lib/auth/supabase-token.ts
@@ -249,6 +259,7 @@ Acceptance tests:
 - Expired sessions redirect safely.
 - Repeated callbacks do not create duplicate profiles.
 - Server routes reject missing or invalid sessions.
+- Server Actions and Route Handlers reject a missing or invalid session even when the proxy matcher does not cover their path.
 - The token route returns no Supabase token without a valid Stytch session.
 
 ## Step 6: Create schema
