@@ -421,20 +421,25 @@ Add indexes for:
 Supabase does not verify Stytch sessions. Its third-party auth integrations cover Clerk, Firebase Auth, Auth0, AWS Cognito, and WorkOS, but not Stytch.[^14] The caller's identity therefore reaches Postgres through a short-lived token that the Letsseeeify server mints after it validates the Stytch session:
 
 1. The server validates the Stytch session and resolves the internal profile where `auth_user_id = stytch_user_id` (Step 5).
-2. The server mints a Supabase access token signed with a private key that has been imported into the Supabase project as a JWT signing key.[^15] The `kid` header must match the imported key. The payload contains:
+2. The server mints a Supabase access token signed with an ES256 (P-256) private key that has been imported into the Supabase project as a JWT signing key.[^15] The `kid` header must match the imported key. The payload contains:
    - `sub`: the internal `profiles.id` (a UUID), so `auth.uid()` returns the caller's profile ID
    - `role`: `authenticated`
    - `iat` and `exp`: the token expires within 15 minutes
 3. The signing key (`SUPABASE_JWT_SIGNING_KEY`) stays server-only. The browser receives only minted tokens. It refreshes them through a server route that re-validates the Stytch session on every request, so a revoked session stops receiving tokens and loses database access once its current token expires.
 4. Supabase clients send the minted token through the `accessToken` option, and Realtime receives it through `realtime.setAuth`.[^16][^9] The `apikey` header always carries the publishable key. It never carries the minted token or the service-role key.
 5. Policies identify the caller by comparing `profiles.id`, or a foreign key to it, with `(select auth.uid())`. Wrapping `auth.uid()` in `select` lets Postgres evaluate it once per statement instead of once per row.[^13]
-6. The service-role client is reserved for server-only modules that do work RLS cannot express, such as webhook processing and moderation tools. The service role bypasses RLS. Before touching data, each such operation must validate the Stytch session, resolve the caller's profile, and check ownership or membership in code. Use a client authenticated with the minted token wherever possible.
+6. The service-role client is reserved for server-only modules that do work RLS cannot express, such as webhook processing and moderation tools. The service role bypasses RLS, so each such operation must authorize itself before touching data:
+   - User-initiated operations validate the Stytch session, resolve the caller's profile, and check ownership or membership in code.
+   - Provider webhooks have no signed-in caller. They verify the provider's signature, map the event to its linked integration, and process each delivery idempotently.
+
+   Use a client authenticated with the minted token wherever possible.
 
 Tests for this contract:
 
 - Unit tests for token minting check the claims, the `kid` header, and the expiry. They also check that missing, expired, or revoked Stytch sessions receive no token.
 - Every `*_rls.test.sql` file runs as `anon`, as `authenticated` with `sub` set to an owning or member profile, and as `authenticated` with a non-owning profile. It covers allowed and denied `select`, `insert`, `update`, and `delete`.
-- Route tests prove that each service-role path rejects a signed-in user who is not the owner or member before any service-role query runs.
+- Route tests prove that each user-initiated service-role path rejects a signed-in user who is not the owner or member before any service-role query runs.
+- Webhook tests prove that deliveries with a missing or invalid signature, or for an unknown integration, are rejected before any service-role query runs, and that a replayed delivery is processed only once.
 - An integration test confirms that Supabase rejects tokens that are expired or signed with a different key.
 
 Policies should follow these rules:

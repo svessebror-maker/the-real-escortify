@@ -1,12 +1,14 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { generateEcJwk } from "./test-keys";
+
 const core = {
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-test",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-value-must-not-leak",
-  SUPABASE_JWT_SIGNING_KEY: JSON.stringify({ kty: "EC", kid: "test-kid", d: "d-test" }),
+  SUPABASE_JWT_SIGNING_KEY: JSON.stringify(generateEcJwk()),
   STYTCH_PROJECT_ID: "project-test",
   STYTCH_SECRET: "stytch-secret-value-must-not-leak",
   NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: "public-token-test",

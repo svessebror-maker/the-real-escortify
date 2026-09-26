@@ -1,3 +1,5 @@
+import { createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
+
 import { z } from "zod";
 
 // Pure schema and parser, safe to import from tests and from instrumentation.
@@ -24,21 +26,32 @@ const base64Key32 = () =>
     error: "must be 32 random bytes, base64-encoded",
   });
 
-// A private JSON Web Key: a public key (no "d") cannot sign tokens.
-const isPrivateJwk = (value: string) => {
+// A usable ES256 signing key: a P-256 private JWK with a kid for the JWT
+// header, whose private part matches its public coordinates.
+const signingProbe = Buffer.from("letsseeeify-signing-key-check");
+
+const isEs256PrivateJwk = (value: string) => {
   try {
     const jwk: unknown = JSON.parse(value);
-    if (typeof jwk !== "object" || jwk === null) return false;
-    const fields = jwk as Record<string, unknown>;
-    return ["kid", "kty", "d"].every((key) => typeof fields[key] === "string");
+    if (typeof jwk !== "object" || jwk === null || Array.isArray(jwk)) return false;
+    const { kid, kty, crv, x, y, d } = jwk as Record<string, unknown>;
+    if (typeof kid !== "string" || kid === "") return false;
+    if (kty !== "EC" || crv !== "P-256") return false;
+    if (typeof x !== "string" || typeof y !== "string" || typeof d !== "string") {
+      return false;
+    }
+    const privateKey = createPrivateKey({ key: { kty, crv, x, y, d }, format: "jwk" });
+    const publicKey = createPublicKey({ key: { kty, crv, x, y }, format: "jwk" });
+    const signature = sign("sha256", signingProbe, privateKey);
+    return verify("sha256", signingProbe, publicKey, signature);
   } catch {
     return false;
   }
 };
 
-const privateJwk = () =>
-  required().refine(isPrivateJwk, {
-    error: "must be a private JWK (JSON with kid, kty and d)",
+const es256PrivateJwk = () =>
+  required().refine(isEs256PrivateJwk, {
+    error: "must be an ES256 private JWK (P-256 with kid, x, y and d)",
   });
 
 export const serverEnvSchema = z.object({
@@ -48,7 +61,7 @@ export const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: required(),
   SUPABASE_SERVICE_ROLE_KEY: required(),
   // Signs short-lived Supabase access tokens (docs/build-plan.md, Step 7).
-  SUPABASE_JWT_SIGNING_KEY: privateJwk(),
+  SUPABASE_JWT_SIGNING_KEY: es256PrivateJwk(),
   STYTCH_PROJECT_ID: required(),
   STYTCH_SECRET: required(),
   NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: required(),

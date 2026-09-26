@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { parseServerEnv } from "./schema";
+import { generateEcJwk } from "./test-keys";
 
 const validKey = Buffer.alloc(32, 7).toString("base64");
 
-const publicJwk = { kty: "EC", kid: "test-kid", crv: "P-256", x: "x-test", y: "y-test" };
-const privateJwk = JSON.stringify({ ...publicJwk, d: "d-test" });
+const signingKey = generateEcJwk();
+const otherKey = generateEcJwk();
 
 const validCore = {
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-test",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-test",
-  SUPABASE_JWT_SIGNING_KEY: privateJwk,
+  SUPABASE_JWT_SIGNING_KEY: JSON.stringify(signingKey),
   STYTCH_PROJECT_ID: "project-test",
   STYTCH_SECRET: "stytch-secret-test",
   NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: "public-token-test",
@@ -81,15 +82,30 @@ describe("parseServerEnv", () => {
   });
 
   it.each([
-    ["a public JWK", JSON.stringify(publicJwk)],
-    ["a JWK without kid", JSON.stringify({ kty: "EC", d: "d-test" })],
+    ["a public JWK (no d)", JSON.stringify({ ...signingKey, d: undefined })],
+    ["a JWK without kid", JSON.stringify({ ...signingKey, kid: undefined })],
+    [
+      "an EC key without curve or public coordinates",
+      JSON.stringify({ kid: "test-kid", kty: "EC", d: signingKey.d }),
+    ],
+    ["a P-384 key", JSON.stringify(generateEcJwk("P-384"))],
+    [
+      "a private part that does not match its public coordinates",
+      JSON.stringify({ ...signingKey, d: otherKey.d }),
+    ],
+    [
+      "an RSA JWK",
+      JSON.stringify({ kid: "test-kid", kty: "RSA", n: "AQAB", e: "AQAB", d: "AQAB" }),
+    ],
     ["non-JSON text", "not-json"],
     ["a JSON array", "[]"],
   ])("rejects %s as the JWT signing key", (_label, value) => {
     const result = parseServerEnv({ ...validCore, SUPABASE_JWT_SIGNING_KEY: value });
     expect(result).toEqual({
       ok: false,
-      problems: ["SUPABASE_JWT_SIGNING_KEY must be a private JWK (JSON with kid, kty and d)"],
+      problems: [
+        "SUPABASE_JWT_SIGNING_KEY must be an ES256 private JWK (P-256 with kid, x, y and d)",
+      ],
     });
   });
 
