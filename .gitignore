@@ -13,15 +13,42 @@ sk_test_*
 *.pem
 *.key
 
-# Scraped third-party images (copyright/consent — keep local only)
-letsseeeify-hd/images/
+# Personal notes and research — not part of the app
+letsseeeify-hd/
+For improvments/
+To-use-in-future/
+Svesse-Project-Template/
+bookmarks_*.html
+Create a database structure for esc.txt
+Forms.txt
+MY WEBSITES.txt
 
-# Dependencies and build output
-node_modules/
-.next/
-dist/
-build/
-coverage/
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js / build output
+/.next/
+/out/
+/build
+/dist
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # OS / editor
 Thumbs.db
