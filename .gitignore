@@ -1,5 +1,7 @@
-# Secrets and credentials — never commit
-Add random creds/
+# Personal and local-only files (secrets, notes, research): never committed
+/local/
+
+# Secrets and credentials, wherever they appear
 **/Credentials/
 **/server-secrets/
 sk_live_*
@@ -13,37 +15,26 @@ sk_test_*
 *.pem
 *.key
 
-# Personal notes and research — not part of the app
-letsseeeify-hd/
-For improvments/
-To-use-in-future/
-Svesse-Project-Template/
-bookmarks_*.html
-Create a database structure for esc.txt
-Forms.txt
-MY WEBSITES.txt
-
 # Dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.*
 
 # Next.js / build output
-/.next/
-/out/
-/build
-/dist
+.next/
+out/
+build/
 .vercel
 *.tsbuildinfo
 next-env.d.ts
 
 # Testing
-/coverage
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+playwright/.auth/
 
 # Debug logs
 npm-debug.log*

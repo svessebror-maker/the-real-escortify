@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 // Baseline headers for every route. When the auth phase adds a nonce-based
@@ -14,9 +16,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // Pin the workspace root so a stray lockfile in a parent folder is ignored.
+  // The npm workspace root, where dependencies are hoisted. Pinning it also
+  // stops a stray lockfile in a parent folder from being picked up.
   turbopack: {
-    root: __dirname,
+    root: path.join(__dirname, "..", ".."),
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

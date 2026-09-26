@@ -25,6 +25,18 @@ Use this stack unless the existing repository already has an equivalent implemen
 
 Every exposed Supabase table must use grants and Row Level Security. Supabase recommends enabling RLS on every exposed table, writing operation-specific policies, and testing both allowed and denied access; secret and service-role keys must remain server-side because they bypass RLS.[^5][^6][^7]
 
+## Native iOS and Android apps
+
+The native apps live in `apps/mobile`, built with Expo (React Native) and Expo Router. Setup, local Android builds, and cloud builds are documented in `apps/mobile/README.md`. The apps use the same backend as the web app:
+
+- **API:** the mobile app calls the Next.js Route Handlers. Because it cannot use browser cookies, protected handlers must also accept a Stytch session token in the `Authorization: Bearer` header and verify it through the same Data Access Layer (Step 5).
+- **Authentication:** use Stytch's React Native SDK. Google sign-in must open the system browser: Google blocks embedded web views. Magic links return to the app through the `letsseeeify://` scheme, and through universal links or App Links once a production domain exists.
+- **Database and Realtime:** the mobile app obtains its Supabase token from the Step 7 token route, exactly as the web app does, and passes it to `supabase-js` and `realtime.setAuth`.
+- **Shared code:** request schemas, matching logic, and product copy that both apps need go in `packages/shared` (`@shared/*`). That folder must stay dependency-free until the repository moves to npm workspaces.
+- **Screens:** from onboarding onward, each phase delivers its web screen first, then the equivalent Expo screen, which reuses the shared logic. The card deck uses native gestures and must keep the button and accessibility equivalents required in Step 13.
+- **Push notifications:** add them with `expo-notifications` in the Realtime chat phase, for new matches and messages.
+- **Checks:** each phase adds the mobile checks (`npm run typecheck`, `npm run lint`, `npx expo-doctor`, and a successful `npx expo export`) to its gate.
+
 ## Master coding prompt
 
 Paste this into the coding app before implementation:
@@ -139,7 +151,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom @playwrig
 
 Import Stytch client APIs from `@stytch/nextjs` only. Since version 22, `@stytch/vanilla-js` is no longer required. At the start of the auth phase, add Stytch's server-side Node SDK (`stytch`) for session validation, and use it only from `server-only` modules.
 
-Suggested structure:
+Suggested structure. The web app lives in `apps/web`, so `src/`, `e2e/`, `supabase/` and every other web path in this plan are relative to that folder; the repository layout is described in the root `README.md`:
 
 ```text
 src/
