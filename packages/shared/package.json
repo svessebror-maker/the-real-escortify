@@ -1,5 +1,11 @@
 {
   "name": "@letsseeeify/shared",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.2"
+  }
 }

@@ -86,14 +86,14 @@ for (const [suffix, size] of [["", 96], ["@2x", 192], ["@3x", 288]]) {
   write(`apps/mobile/assets/logo${suffix}.png`, render(roundedIcon(), size));
 }
 
-console.log("Web (src/app, public):");
-write("src/app/icon.svg", smallIcon());
-write("src/app/favicon.ico", ico([16, 32, 48].map((size) => ({ size, data: render(smallIcon(), size) }))));
-write("src/app/apple-icon.png", render(appIcon(), 180));
+console.log("Web (apps/web/src/app, apps/web/public):");
+write("apps/web/src/app/icon.svg", smallIcon());
+write("apps/web/src/app/favicon.ico", ico([16, 32, 48].map((size) => ({ size, data: render(smallIcon(), size) }))));
+write("apps/web/src/app/apple-icon.png", render(appIcon(), 180));
 const tagline = twoLines(escapeXml(APP_TAGLINE));
 write(
-  "src/app/opengraph-image.png",
+  "apps/web/src/app/opengraph-image.png",
   render(openGraphImage({ title: escapeXml(APP_NAME), tagline }), 1200, { withFonts: true }),
 );
-write("src/app/opengraph-image.alt.txt", `${APP_NAME}: ${APP_TAGLINE}`);
-write("public/brand/logo.svg", roundedIcon());
+write("apps/web/src/app/opengraph-image.alt.txt", `${APP_NAME}: ${APP_TAGLINE}`);
+write("apps/web/public/brand/logo.svg", roundedIcon());

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { memo } from "react";
 import { Image, type ImageSourcePropType, StyleSheet, Text, View } from "react-native";
 
 import { type DiscoveryProfile, initials } from "@shared/discovery";
@@ -10,7 +11,8 @@ type Props = { profile: DiscoveryProfile; palette: Palette; photo?: ImageSourceP
 
 // Content order follows docs/build-plan.md Step 13: image, name and role,
 // institution and location, goal badge, topics, skills, reasons, availability.
-export function DiscoveryCard({ profile, palette, photo }: Props) {
+// Memoized: a card's content never changes while the deck moves around it.
+export const DiscoveryCard = memo(function DiscoveryCard({ profile, palette, photo }: Props) {
   const { hue } = profile;
 
   return (
@@ -91,7 +93,7 @@ export function DiscoveryCard({ profile, palette, photo }: Props) {
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

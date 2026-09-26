@@ -151,7 +151,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom @playwrig
 
 Import Stytch client APIs from `@stytch/nextjs` only. Since version 22, `@stytch/vanilla-js` is no longer required. At the start of the auth phase, add Stytch's server-side Node SDK (`stytch`) for session validation, and use it only from `server-only` modules.
 
-Suggested structure:
+Suggested structure. The web app lives in `apps/web`, so `src/`, `e2e/`, `supabase/` and every other web path in this plan are relative to that folder; the repository layout is described in the root `README.md`:
 
 ```text
 src/

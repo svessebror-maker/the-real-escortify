@@ -31,6 +31,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # Root scripts run the web app and shared package through npm workspaces.
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -40,7 +41,7 @@ jobs:
       - name: Check server secrets stay out of client output
         run: |
           if grep -rlF -e ci-canary-service-role -e ci-canary-stytch-secret \
-            .next/static .next/server/app \
+            apps/web/.next/static apps/web/.next/server/app \
             --include='*.js' --include='*.html' --include='*.rsc'; then
             echo "::error::A server-only secret was found in build output"
             exit 1
@@ -67,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-test-results
-          path: test-results/
+          path: apps/web/test-results/
           retention-days: 7
 
   mobile:

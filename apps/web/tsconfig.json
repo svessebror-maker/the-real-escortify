@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["./packages/shared/src/*"]
+      "@shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [
@@ -29,15 +29,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "../../packages/shared/src/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "apps",
-    "Add random creds",
-    "letsseeeify-hd",
-    "For improvments",
-    "To-use-in-future",
-    "Svesse-Project-Template"
-  ]
+  "exclude": ["node_modules"]
 }

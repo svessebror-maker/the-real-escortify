@@ -6,12 +6,19 @@ The build plan lives in [docs/build-plan.md](docs/build-plan.md). Work proceeds 
 
 ## Repository layout
 
-| Path | What it is |
-|---|---|
-| `src/` | Next.js web app, which is also the API the mobile app uses |
-| `apps/mobile/` | iOS and Android app (Expo). See [apps/mobile/README.md](apps/mobile/README.md) |
-| `packages/shared/` | Dependency-free TypeScript used by both apps, imported as `@shared/*` |
-| `docs/` | Build plan |
+```text
+apps/
+  web/              Next.js web app, also the API the mobile app uses
+  mobile/           iOS and Android app (Expo); see apps/mobile/README.md
+packages/
+  shared/           Dependency-free TypeScript used by both apps (@shared/*)
+brand/              Vector artwork for every icon and preview image
+scripts/            Asset generation (npm run brand:generate)
+docs/               Build plan
+local/              Your personal files and notes: gitignored, never committed
+```
+
+The root is an npm workspace containing `apps/web` and `packages/shared`, so one `npm install` at the root sets up both. `apps/mobile` keeps its own install, because React Native pins a different React version than the web app.
 
 ## Stack
 
@@ -24,9 +31,11 @@ Requires Node 24.15+ or 26+ (`.nvmrc` pins 24).
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in values
+cp apps/web/.env.example apps/web/.env.local   # then fill in values
 npm run dev
 ```
+
+For the mobile app, run `npm install` inside `apps/mobile`, then `npm run mobile` from the root.
 
 In development, missing environment variables are reported as a warning. In production (`next start`), the server refuses to start until they are set. Messages list variable names only, never values.
 
@@ -34,14 +43,18 @@ In development, missing environment variables are reported as a warning. In prod
 
 ## Scripts
 
+Run these from the repository root:
+
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Development server |
-| `npm run build` | Production build |
-| `npm run typecheck` | Generate route types, then `tsc --noEmit` |
-| `npm run lint` | ESLint |
-| `npm test -- --run` | Unit and component tests (Vitest) |
+| `npm run dev` | Web development server |
+| `npm run build` | Web production build |
+| `npm run typecheck` | Generate route types, then `tsc --noEmit` (web app and shared code) |
+| `npm run lint` | ESLint for the web app, shared code, brand artwork and scripts |
+| `npm test -- --run` | Unit and component tests (Vitest) in every workspace |
 | `npm run test:e2e` | End-to-end tests (Playwright; run `npx playwright install chromium` once). Reuses a dev server already running on port 3000 |
+| `npm run brand:generate` | Regenerate every icon and preview image from `brand/artwork.mjs` |
+| `npm run mobile` | Expo dev server for the mobile app |
 
 ## CI
 

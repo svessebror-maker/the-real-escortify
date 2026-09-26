@@ -14,7 +14,7 @@ The mark is a tilted stack of profile cards (the discovery deck). Its front card
 | `apps/mobile/assets/android-icon-*.png` | Android adaptive icon layers; the mark stays inside the 66/108 safe zone. `monochrome` is the Android 13+ themed icon |
 | `apps/mobile/assets/splash-icon.png` | Splash screen, shown on white (light mode) or `#0a0a0a` (dark mode) |
 | `apps/mobile/assets/logo(@2x, @3x).png` | Home-screen logo, rendered separately for each pixel density |
-| `src/app/icon.svg`, `favicon.ico` | Browser tab icons: a simplified mark that stays legible at 16 px |
-| `src/app/apple-icon.png` | iOS home-screen icon for the website (180 px) |
-| `src/app/opengraph-image.png` | 1200 × 630 link preview, set in Geist (from the `geist` package, SIL Open Font License) |
-| `public/brand/logo.svg` | Vector logo on the web home page |
+| `apps/web/src/app/icon.svg`, `favicon.ico` | Browser tab icons: a simplified mark that stays legible at 16 px |
+| `apps/web/src/app/apple-icon.png` | iOS home-screen icon for the website (180 px) |
+| `apps/web/src/app/opengraph-image.png` | 1200 × 630 link preview, set in Geist (from the `geist` package, SIL Open Font License) |
+| `apps/web/public/brand/logo.svg` | Vector logo on the web home page |
