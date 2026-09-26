@@ -1,0 +1,31 @@
+# Secrets and credentials — never commit
+Add random creds/
+**/Credentials/
+**/server-secrets/
+sk_live_*
+sk_test_*
+*secrets*.sh
+*Passwords*.csv
+*passwords*.csv
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Scraped third-party images (copyright/consent — keep local only)
+letsseeeify-hd/images/
+
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
