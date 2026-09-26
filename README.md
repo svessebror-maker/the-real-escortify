@@ -15,6 +15,7 @@ packages/
 brand/              Vector artwork for every icon and preview image
 scripts/            Asset generation (npm run brand:generate)
 docs/               Build plan
+deploy/             Server deployment: systemd, nginx and update scripts (see deploy/README.md)
 local/              Your personal files and notes: gitignored, never committed
 ```
 

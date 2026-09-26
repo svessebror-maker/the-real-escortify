@@ -41,6 +41,23 @@ describe("register", () => {
     await expect(failure).rejects.not.toThrow(leakCheck);
   });
 
+  it("still refuses in production unless preview is exactly 1", async () => {
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LETSSEEEIFY_PREVIEW", "true");
+    await expect(register()).rejects.toThrow(/STYTCH_SECRET is required/);
+  });
+
+  it("only warns in production preview mode", async () => {
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LETSSEEEIFY_PREVIEW", "1");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(register()).resolves.toBeUndefined();
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(/^\[env\] Preview mode: [\s\S]*STYTCH_SECRET is required/);
+    expect(String(warn.mock.calls[0]?.[0])).not.toContain(leakCheck);
+  });
+
   it("only warns in development", async () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     vi.stubEnv("NODE_ENV", "development");

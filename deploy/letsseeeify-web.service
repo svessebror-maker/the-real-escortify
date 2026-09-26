@@ -1,0 +1,20 @@
+# systemd unit for the web app. Install with deploy/setup-server.sh.
+[Unit]
+Description=Letsseeeify web app (Next.js)
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/letsseeeify
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+# Listen on localhost only; nginx is the public entry point.
+ExecStart=/usr/bin/npm run start -w @letsseeeify/web -- -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
