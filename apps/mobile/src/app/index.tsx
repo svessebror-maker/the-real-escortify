@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from "react-native";
+import { Image, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { APP_NAME, APP_TAGLINE } from "@shared/brand";
@@ -10,6 +10,8 @@ export default function Home() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      {/* logo.png ships @2x/@3x variants, so it stays sharp on every screen density. */}
+      <Image source={require("../../assets/logo.png")} style={styles.logo} accessible={false} />
       <Text accessibilityRole="header" style={[styles.title, { color: palette.foreground }]}>
         {APP_NAME}
       </Text>
@@ -27,6 +29,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
   },
+  logo: { width: 96, height: 96, marginBottom: 8 },
   title: { fontSize: 36, fontWeight: "600", letterSpacing: -0.5 },
   tagline: { fontSize: 18, lineHeight: 28, textAlign: "center", maxWidth: 448 },
   status: { fontSize: 14 },
