@@ -12,7 +12,8 @@ npm run build
 sudo systemctl restart letsseeeify
 
 for _ in $(seq 1 30); do
-  if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+  if curl -fsS -o /dev/null http://127.0
+  .0.1:3000/; then
     echo "Deployed $(git rev-parse --short HEAD) from $branch."
     exit 0
   fi
